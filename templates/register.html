@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}Create Account | SecureText ECC{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-center align-items-center min-vh-100">
+
+  <div class="glass register-wide p-0" data-aos="fade-up">
+
+    <div class="row g-0">
+
+      <!-- =========================
+           LEFT: SECURITY INFO
+      ========================== -->
+      <div class="col-md-6 p-5 border-end security-panel">
+        <h3 class="fw-bold mb-3">
+          <i class="bi bi-shield-check"></i>
+          SecureText ECC
+        </h3>
+
+        <p class="text-muted-readable">
+          A zero-trust secure messaging platform designed for
+          confidentiality, integrity, and accountability.
+        </p>
+
+        <ul class="list-unstyled mt-4 security-points">
+          <li>
+            <i class="bi bi-lock-fill text-primary"></i>
+            End-to-End Encryption (ECC + AES-GCM)
+          </li>
+          <li>
+            <i class="bi bi-database-lock text-success"></i>
+            Zero Plaintext Storage
+          </li>
+          <li>
+            <i class="bi bi-person-check text-warning"></i>
+            Admin Re-Authentication
+          </li>
+          <li>
+            <i class="bi bi-clipboard-check text-info"></i>
+            Auditable Decryption Logs
+          </li>
+        </ul>
+
+        <div class="mt-5 small text-muted-readable">
+          Built for academic, enterprise, and security-critical use cases.
+        </div>
+      </div>
+
+      <!-- =========================
+           RIGHT: REGISTER FORM
+      ========================== -->
+      <div class="col-md-6 p-5">
+
+        <div class="text-center mb-4">
+          <div class="security-icon mb-2">
+            <i class="bi bi-person-plus-fill"></i>
+          </div>
+          <h4 class="fw-bold">Create Secure Account</h4>
+          <small class="text-muted-readable">
+            Zero-Trust · Encrypted · Audited
+          </small>
+        </div>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <!-- =========================
+               FORM LEVEL ERRORS
+          ========================== -->
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger small">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              {{ form.non_field_errors }}
+            </div>
+          {% endif %}
+
+          <!-- USERNAME -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-person"></i> Username
+            </label>
+
+            <input
+              type="text"
+              id="id_username"
+              name="username"
+              class="form-control {% if form.username.errors %}input-error{% endif %}"
+              autocomplete="off"
+              required
+            >
+
+            <!-- ALWAYS VISIBLE RULE -->
+            <div id="usernameHint" class="username-hint">
+              Username must contain at least one letter (A–Z).
+              Numbers and underscores are allowed.
+            </div>
+
+            <!-- DYNAMIC FEEDBACK -->
+            <div id="usernameFeedback"></div>
+
+            {% if form.username.errors %}
+              <div class="form-error">
+                {{ form.username.errors }}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- PASSWORD -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-key"></i> Password
+            </label>
+
+            <div class="position-relative">
+              <input type="password" id="reg_password" name="password1"
+                     class="form-control {% if form.password1.errors %}input-error{% endif %}" required>
+              <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3"
+                 id="toggleRegPwd"
+                 style="cursor:pointer"
+                 onclick="togglePassword('reg_password','toggleRegPwd')"></i>
+            </div>
+
+            <!-- 🔧 Password Strength Meter -->
+            <div class="progress mt-2" style="height:6px;">
+              <div id="pwdStrength" class="progress-bar"></div>
+            </div>
+            <small id="pwdText" class="text-muted"></small>
+
+            {% if form.password1.errors %}
+              <div class="form-error">
+                {{ form.password1.errors }}
+              </div>
+            {% endif %}
+
+            <div class="form-text text-muted-readable">
+              Minimum 10 characters · Avoid common passwords
+            </div>
+          </div>
+
+          <!-- CONFIRM PASSWORD -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-check-circle"></i> Confirm Password
+            </label>
+
+            <div class="position-relative mt-3">
+              <input type="password" id="reg_confirm" name="password2"
+                     class="form-control {% if form.password2.errors %}input-error{% endif %}" required>
+              <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3"
+                 id="toggleRegConfirm"
+                 style="cursor:pointer"
+                 onclick="togglePassword('reg_confirm','toggleRegConfirm')"></i>
+            </div>
+
+            {% if form.password2.errors %}
+              <div class="form-error">
+                {{ form.password2.errors }}
+              </div>
+            {% endif %}
+          </div>
+
+          <button type="submit" class="btn btn-outline-primary w-100 btn-lg">
+            <i class="bi bi-shield-check"></i>
+            Create Account
+          </button>
+        </form>
+
+        <div class="text-center mt-4 small">
+          Already have an account?
+          <a href="{% url 'core:login' %}" class="fw-semibold text-decoration-none">
+            Login here
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.username-hint {
+  font-size: 0.85rem;
+  color: #cbd5e1;          /* Light slate – readable on dark */
+  margin-top: 4px;
+}
+
+.username-error {
+  font-size: 0.85rem;
+  color: #ef4444;          /* Red */
+  margin-top: 4px;
+}
+
+.username-success {
+  font-size: 0.85rem;
+  color: #22c55e;          /* Green */
+  margin-top: 4px;
+}
+
+.input-error + .username-hint {
+  color: #ef4444;
+  font-weight: 500;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let usernameTimer = null;
+
+const usernameInput = document.getElementById("id_username");
+const feedback = document.getElementById("usernameFeedback");
+
+const USERNAME_REGEX = /^(?=.*[A-Za-z])[A-Za-z0-9_]{3,30}$/;
+
+usernameInput.addEventListener("input", () => {
+  clearTimeout(usernameTimer);
+
+  const username = usernameInput.value.trim();
+  feedback.className = "";
+  feedback.textContent = "";
+
+  if (!username) return;
+
+  // ❌ Invalid format → show rule error, stop
+  if (!USERNAME_REGEX.test(username)) {
+    feedback.textContent =
+      "Username must contain at least one letter (A–Z).";
+    feedback.className = "username-error";
+    return;
+  }
+
+  // ✅ Valid format → check availability
+  usernameTimer = setTimeout(() => {
+    fetch(`/check-username/?username=${encodeURIComponent(username)}`)
+      .then(res => res.json())
+      .then(data => {
+        feedback.textContent = data.available
+          ? "Username available"
+          : "Username already exists";
+
+        feedback.className = data.available
+          ? "username-success"
+          : "username-error";
+      });
+  }, 400);
+});
+</script>
+{% endblock %}

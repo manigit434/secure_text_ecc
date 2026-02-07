@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}My Submissions | SecureText ECC{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-2">
+  <div>
+    <h3 class="mb-1">
+      <i class="bi bi-lock-fill"></i>
+      My Encrypted Submissions
+    </h3>
+    <div class="text-muted small">
+      All messages are stored <strong>encrypted at rest</strong>.
+      No plaintext is persisted in the database.
+    </div>
+  </div>
+
+  <a class="btn btn-dark" href="{% url 'core:submit' %}">
+    <i class="bi bi-plus-circle"></i>
+    New Submission
+  </a>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+
+    {% if subs %}
+      <ul class="list-group list-group-flush">
+
+        {% for sub in subs %}
+          <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+
+            <!-- Left info -->
+            <div>
+              <div class="fw-semibold">
+                Encrypted Record #{{ sub.id }}
+              </div>
+              <div class="text-muted small">
+                <i class="bi bi-clock"></i>
+                {{ sub.created_at|date:"M d, Y H:i" }}
+              </div>
+            </div>
+
+            <!-- Right actions -->
+            <div>
+              {% if request.user.is_superuser %}
+                <a
+                  class="btn btn-outline-dark btn-sm"
+                  href="{% url 'core:admin_decrypt' sub.id %}"
+                >
+                  <i class="bi bi-unlock"></i>
+                  Admin Decrypt
+                </a>
+              {% else %}
+                <span class="badge bg-secondary">
+                  <i class="bi bi-shield-lock"></i>
+                  Encrypted
+                </span>
+              {% endif %}
+            </div>
+
+          </li>
+        {% endfor %}
+
+      </ul>
+    {% else %}
+      <div class="p-4 text-center text-muted">
+        <i class="bi bi-inbox"></i><br>
+        No encrypted submissions yet.
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}
