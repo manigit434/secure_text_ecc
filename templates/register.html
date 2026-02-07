@@ -238,11 +238,11 @@ usernameInput.addEventListener("input", () => {
     fetch(`/check-username/?username=${encodeURIComponent(username)}`)
       .then(res => res.json())
       .then(data => {
-        feedback.textContent = data.available
-          ? "Username available"
-          : "Username already exists";
+        feedback.textContent = data.valid
+          ? data.message
+          : data.message;
 
-        feedback.className = data.available
+        feedback.className = data.valid
           ? "username-success"
           : "username-error";
       });

@@ -5,11 +5,17 @@ Implements hybrid encryption using:
 - ECC (ECDH) for key exchange
 - HKDF for key derivation
 - AES-GCM for authenticated encryption
+
+Design goals:
+- Plaintext is never stored
+- Private keys are generated per deployment
+- Strong, modern cryptography with minimal attack surface
 """
 
-from pathlib import Path
 import os
 from typing import Tuple
+from pathlib import Path
+from django.conf import settings
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -20,22 +26,32 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 # ======================================================
 # Configuration
 # ======================================================
+
 CURVE = ec.SECP256R1()
-KEY_DIR = Path("secure_keys")
+
+# Directory to store server private key (NOT committed)
+KEY_DIR = settings.BASE_DIR / "secure_keys"
 SERVER_KEY_FILE = KEY_DIR / "server_ec_private.pem"
 
 
 # ======================================================
 # Key Management
 # ======================================================
+
 def _ensure_key_dir() -> None:
-    """Ensure secure key storage directory exists."""
+    """Ensure secure directory exists for key storage."""
     KEY_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def load_or_create_server_private_key() -> ec.EllipticCurvePrivateKey:
     """
-    Load the persistent server ECC private key or generate one securely.
+    Load the persistent server ECC private key or securely generate one.
+
+    The key is:
+    - Generated only once
+    - Stored locally
+    - Never hardcoded
+    - Never committed to version control
     """
     _ensure_key_dir()
 
@@ -45,8 +61,10 @@ def load_or_create_server_private_key() -> ec.EllipticCurvePrivateKey:
             password=None,
         )
 
+    # Generate new server private key
     private_key = ec.generate_private_key(CURVE)
 
+    # Serialize and store securely
     SERVER_KEY_FILE.write_bytes(
         private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -54,6 +72,12 @@ def load_or_create_server_private_key() -> ec.EllipticCurvePrivateKey:
             encryption_algorithm=serialization.NoEncryption(),
         )
     )
+
+    # Restrict permissions (Linux/macOS safe; ignored on Windows)
+    try:
+        SERVER_KEY_FILE.chmod(0o600)
+    except PermissionError:
+        pass
 
     return private_key
 
@@ -73,21 +97,23 @@ def get_server_public_key_pem(
 # ======================================================
 # Key Derivation
 # ======================================================
+
 def _derive_aes_key(shared_secret: bytes, salt: bytes) -> bytes:
     """
-    Derive a 256-bit AES key from ECDH shared secret.
+    Derive a 256-bit AES key from ECDH shared secret using HKDF.
     """
     return HKDF(
         algorithm=hashes.SHA256(),
-        length=32,
+        length=32,  # 256-bit AES key
         salt=salt,
         info=b"securetext-ecc-aes",
     ).derive(shared_secret)
 
 
 # ======================================================
-# Encryption / Decryption
+# Encryption
 # ======================================================
+
 def encrypt_message(
     plaintext: str,
     server_private_key: ec.EllipticCurvePrivateKey,
@@ -95,11 +121,17 @@ def encrypt_message(
     """
     Encrypt plaintext using ECC + AES-GCM.
 
+    Flow:
+    - Generate ephemeral ECC key (client-side simulation)
+    - Perform ECDH key exchange
+    - Derive AES key via HKDF
+    - Encrypt using AES-GCM
+
     Returns:
         ciphertext, nonce, salt, client_public_key_pem
     """
 
-    # Client ephemeral key (demo-safe, production-ready pattern)
+    # Ephemeral client key (per message)
     client_private_key = ec.generate_private_key(CURVE)
     client_public_key = client_private_key.public_key()
 
@@ -109,12 +141,12 @@ def encrypt_message(
         client_public_key,
     )
 
-    # AES key derivation
+    # Key derivation
     salt = os.urandom(16)
     aes_key = _derive_aes_key(shared_secret, salt)
 
-    # Authenticated encryption
-    nonce = os.urandom(12)
+    # AES-GCM encryption
+    nonce = os.urandom(12)  # Recommended size for GCM
     aesgcm = AESGCM(aes_key)
     ciphertext = aesgcm.encrypt(
         nonce,
@@ -133,6 +165,10 @@ def encrypt_message(
     )
 
 
+# ======================================================
+# Decryption
+# ======================================================
+
 def decrypt_message(
     ciphertext: bytes,
     nonce: bytes,
@@ -142,20 +178,29 @@ def decrypt_message(
 ) -> str:
     """
     Decrypt AES-GCM encrypted message using ECC-derived key.
+
+    Plaintext exists only in memory and is never persisted.
     """
 
     client_public_key = serialization.load_pem_public_key(
         client_public_key_pem
     )
 
+    # Recompute shared secret
     shared_secret = server_private_key.exchange(
         ec.ECDH(),
         client_public_key,
     )
 
+    # Derive AES key
     aes_key = _derive_aes_key(shared_secret, salt)
 
+    # Decrypt
     aesgcm = AESGCM(aes_key)
-    plaintext = aesgcm.decrypt(nonce, ciphertext, None)
+    plaintext = aesgcm.decrypt(
+        nonce,
+        ciphertext,
+        None,
+    )
 
     return plaintext.decode("utf-8")

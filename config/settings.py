@@ -17,14 +17,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ======================================================
 # Security Settings
 # ======================================================
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "dev-secret-key-change-this-in-production"
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 
-DEBUG = False  # 🔧 Set False for production
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["*"]  # OK for demo / academic; restrict later
+ALLOWED_HOSTS = os.environ.get(
+    "DJANGO_ALLOWED_HOSTS",
+    ""
+).split(",")
+
+# ⚠️ Do NOT use ["*"] in production
 
 
 # ======================================================

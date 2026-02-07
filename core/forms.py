@@ -6,18 +6,12 @@ from django.contrib.auth.models import User
 
 
 class SecureUserCreationForm(UserCreationForm):
-    email = forms.EmailField(
-        required=True,
-        help_text="Required. Enter a valid email address.",
-        widget=forms.EmailInput(attrs={"placeholder": "you@example.com"})
-    )
-
     class Meta:
         model = User
-        fields = ("username", "email", "password1", "password2")
+        fields = ("username", "password1", "password2")
 
     def clean_username(self):
-        username = self.cleaned_data.get("username", "")
+        username = self.cleaned_data.get("username", "").strip()
 
         # ✅ Must contain at least one letter
         if not re.search(r"[A-Za-z]", username):
@@ -44,15 +38,10 @@ class SecureUserCreationForm(UserCreationForm):
                 f"'{username}' is a reserved word and cannot be used as a username."
             )
 
-        return username
-
-    def clean_email(self):
-        email = self.cleaned_data.get("email", "").lower()
-
-        # ✅ Ensure unique email
-        if User.objects.filter(email=email).exists():
+        # ✅ Ensure unique username
+        if User.objects.filter(username=username).exists():
             raise forms.ValidationError(
-                "This email address is already registered."
+                "This username is already taken."
             )
 
-        return email
+        return username

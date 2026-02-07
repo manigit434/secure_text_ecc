@@ -102,13 +102,17 @@ def register_view(request: HttpRequest) -> HttpResponse:
 
     form = SecureUserCreationForm(request.POST or None)
 
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(
-            request,
-            "Account created successfully. Please log in."
-        )
-        return redirect("core:login")
+    if request.method == "POST":
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                "Account created successfully. Please log in."
+            )
+            return redirect("core:login")
+        else:
+            # 🔍 DEBUG VISIBILITY
+            print(form.errors)
 
     return render(request, "register.html", {"form": form})
 
