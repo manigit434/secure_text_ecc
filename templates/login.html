@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Secure Login | SecureText ECC{% endblock %}
+
+{% block content %}
+<section class="hero py-5">
+  <div class="container d-flex justify-content-center">
+    <div
+      class="glass p-4 p-md-5"
+      style="max-width:520px;width:100%;"
+      data-aos="fade-up"
+    >
+
+      <!-- Header -->
+      <div class="text-center mb-4">
+        <i class="bi bi-shield-lock fs-1 text-primary"></i>
+        <h3 class="fw-bold mt-2">Secure Login</h3>
+        <p class="hero-subtitle mb-3">
+          Zero-Trust · Encrypted · Audited
+        </p>
+      </div>
+
+      <!-- INFO -->
+      <div class="alert alert-info small">
+        <i class="bi bi-info-circle"></i>
+        Login to access encrypted submissions.
+        All credentials are securely processed.
+      </div>
+
+      <!-- COOLDOWN ALERT -->
+      {% if locked %}
+      <div class="alert alert-warning text-center" id="cooldownAlert">
+        <i class="bi bi-clock-history"></i>
+        Too many failed attempts.
+        Try again in <strong><span id="cooldownTimer">{{ cooldown }}</span></strong> seconds.
+      </div>
+      {% endif %}
+
+      <!-- ERROR ALERT -->
+      {% if error and not locked %}
+      <div class="alert alert-danger text-center">
+        <i class="bi bi-exclamation-triangle"></i>
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <!-- LOGIN FORM -->
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- Username -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-person"></i> Username
+          </label>
+          <input
+            type="text"
+            name="username"
+            class="form-control"
+            placeholder="Enter your username"
+            {% if locked %}disabled{% endif %}
+            required>
+        </div>
+
+        <!-- Password -->
+        <div class="mb-4">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-key"></i> Password
+          </label>
+          <div class="position-relative">
+            <input type="password" id="password" name="password"
+                   class="form-control" placeholder="Enter your password"
+                   {% if locked %}disabled{% endif %} required>
+            <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3"
+               id="toggleLoginPwd"
+               style="cursor:pointer"
+               onclick="togglePassword('password','toggleLoginPwd')"></i>
+          </div>
+        </div>
+
+        <!-- Login Button -->
+        <button type="submit"
+                class="btn btn-primary w-100 btn-lg"
+                {% if locked %}disabled{% endif %}>
+          <i class="bi bi-box-arrow-in-right"></i> Login
+        </button>
+      </form>
+
+      <hr class="my-4">
+
+      <div class="text-center small">
+        Don’t have an account?
+        <a href="{% url 'core:register' %}" class="fw-semibold">
+          Register here
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{% if locked %}
+<script>
+  let timeLeft = {{ cooldown }};
+  const timerEl = document.getElementById("cooldownTimer");
+
+  const countdown = setInterval(() => {
+    timeLeft--;
+    timerEl.innerText = timeLeft;
+
+    if (timeLeft <= 0) {
+      clearInterval(countdown);
+
+      // Reload page to unlock inputs
+      location.reload();
+    }
+  }, 1000);
+</script>
+{% endif %}
+{% endblock %}
