@@ -7,26 +7,20 @@ class Submission(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="submissions",
     )
 
+    # ✅ Correct field types
+    encrypted_text = models.TextField()
+    nonce = models.CharField(max_length=64)
+    salt = models.CharField(max_length=64)
+    client_pubkey_pem = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-
-    encrypted_text = models.BinaryField()
-    nonce = models.BinaryField()
-    salt = models.BinaryField()
-    client_pubkey_pem = models.BinaryField()
 
     # ✅ Store client IP (supports IPv4 + IPv6)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
 
-    class Meta:
-        ordering = ("-created_at",)
-        verbose_name = "Encrypted Submission"
-        verbose_name_plural = "Encrypted Submissions"
-
     def __str__(self):
-        return f"Encrypted Submission #{self.pk} by {self.user}"
+        return f"Submission #{self.id}"
 
 
 class DecryptionAuditLog(models.Model):
