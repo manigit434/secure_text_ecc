@@ -9,29 +9,50 @@ from core.crypto.crypto import (
     load_or_create_server_private_key,
     decrypt_message,
 )
+from core.utils import get_client_ip
 
 
 @admin.register(Submission)
 class SubmissionAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "created_at", "decrypt_button")
+    list_filter = ("created_at",)
+    search_fields = ("user__username",)
+    ordering = ("-created_at",)
+
+    # 🔐 Prevent plaintext exposure
     readonly_fields = (
-        "user",
-        "created_at",
         "encrypted_text",
         "nonce",
         "salt",
         "client_pubkey_pem",
+        "created_at",
+        "user",
+        "ip_address",
+    )
+
+    fieldsets = (
+        ("Metadata", {
+            "fields": ("user", "created_at", "ip_address")
+        }),
+        ("Encrypted Payload (DO NOT EDIT)", {
+            "fields": (
+                "encrypted_text",
+                "nonce",
+                "salt",
+                "client_pubkey_pem",
+            )
+        }),
     )
 
     # 🔒 Disable Add, Change, Delete
     def has_add_permission(self, request):
-        return False  # ❌ removes "Add Encrypted Submission +"
+        return False
 
     def has_change_permission(self, request, obj=None):
-        return False  # ❌ prevents editing
+        return False
 
     def has_delete_permission(self, request, obj=None):
-        return False  # ❌ prevents deletion
+        return False
 
     def decrypt_button(self, obj):
         return admin.utils.format_html(
@@ -81,7 +102,7 @@ class SubmissionAdmin(admin.ModelAdmin):
                 DecryptionAuditLog.objects.create(
                     admin=request.user,
                     submission=submission,
-                    ip_address=request.META.get("REMOTE_ADDR", ""),
+                    ip_address=get_client_ip(request),  # ✅ safe IP
                     reason=reason,
                 )
 
@@ -111,20 +132,19 @@ class DecryptionAuditLogAdmin(admin.ModelAdmin):
         "ip_address",
         "reason",
     )
-
     list_filter = ("created_at", "admin")
     search_fields = ("admin__username", "submission__id", "reason")
     ordering = ("-created_at",)
 
     # 🔒 ABSOLUTE LOCKDOWN
     def has_add_permission(self, request):
-        return False  # ❌ cannot manually add logs
+        return False
 
     def has_change_permission(self, request, obj=None):
-        return False  # ❌ cannot edit logs
+        return False
 
     def has_delete_permission(self, request, obj=None):
-        return False  # ❌ cannot delete logs
+        return False
 
     actions = None  # ❌ disable bulk actions
 
