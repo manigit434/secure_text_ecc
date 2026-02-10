@@ -15,7 +15,7 @@ urlpatterns = [
 
     # User
     path("success/", views.success_view, name="success"),
-    path("mine/", views.mine_view, name="mine"),
+    path("mine/", views.my_submissions, name="mine"),  # ✅ updated to safe view
     path("submit/", views.submit_view, name="submit"),
 
     # Admin decrypt (single page)
