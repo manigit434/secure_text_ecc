@@ -1,5 +1,6 @@
 import time
 import re
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -16,7 +17,7 @@ from core.crypto.crypto import (
     encrypt_message,
     decrypt_message,
 )
-from core.utils import get_client_ip   # ✅ NEW import
+from core.utils import get_client_ip
 
 
 # ======================================================
@@ -25,8 +26,9 @@ from core.utils import get_client_ip   # ✅ NEW import
 def home(request: HttpRequest) -> HttpResponse:
     """
     Root homepage view.
+    IMPORTANT: base.html is a layout, not a page.
     """
-    return render(request, "base.html")  # or "index.html" if you prefer
+    return render(request, "dashboard.html")
 
 
 # ======================================================
@@ -65,9 +67,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
         })
 
     if request.method == "POST":
-        # ✅ Capture real client IP
         ip_address = get_client_ip(request)
-        print("User login attempt from IP:", ip_address)
 
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
@@ -78,7 +78,6 @@ def login_view(request: HttpRequest) -> HttpResponse:
             login(request, user)
             request.session["login_failures"] = 0
             request.session["cooldown_until"] = 0
-            print("User logged in successfully from IP:", ip_address)
             return redirect("core:success")
 
         # ❌ FAILED LOGIN
@@ -127,9 +126,6 @@ def register_view(request: HttpRequest) -> HttpResponse:
                 "Account created successfully. Please log in."
             )
             return redirect("core:login")
-        else:
-            # 🔍 DEBUG VISIBILITY
-            print(form.errors)
 
     return render(request, "register.html", {"form": form})
 
@@ -138,29 +134,29 @@ def register_view(request: HttpRequest) -> HttpResponse:
 # USERNAME AVAILABILITY CHECK (AJAX)
 # ======================================================
 @require_http_methods(["GET"])
-def check_username(request):
+def check_username(request: HttpRequest) -> JsonResponse:
     username = request.GET.get("username", "").strip()
 
     if not username:
         return JsonResponse({
-            "valid": False,
+            "available": False,
             "message": "Username is required."
         })
 
     if not re.search(r"[A-Za-z]", username):
         return JsonResponse({
-            "valid": False,
-            "message": "Username must contain at least one letter (A–Z)."
+            "available": False,
+            "message": "Username must contain at least one letter."
         })
 
     if User.objects.filter(username=username).exists():
         return JsonResponse({
-            "valid": False,
+            "available": False,
             "message": "Username already taken."
         })
 
     return JsonResponse({
-        "valid": True,
+        "available": True,
         "message": "Username available."
     })
 
@@ -182,6 +178,8 @@ def mine_view(request: HttpRequest) -> HttpResponse:
     View encrypted submissions of logged-in user.
     """
     submissions = Submission.objects.filter(user=request.user)
+
+    # IMPORTANT: template must exist exactly at this path
     return render(
         request,
         "my_submissions.html",
@@ -217,8 +215,6 @@ def submit_view(request: HttpRequest) -> HttpResponse:
             nonce=nonce,
             salt=salt,
             client_pubkey_pem=client_pub,
-            # ✅ Optionally log IP here too
-            # ip_address=get_client_ip(request),
         )
 
         return redirect("core:mine")
@@ -236,21 +232,16 @@ def admin_decrypt_view(
     sub_id: int,
 ) -> HttpResponse:
     """
-    Admin-only decryption with:
-    - Password re-confirmation
-    - Audit logging
-    - No plaintext auto-preview
+    Admin-only decryption with audit logging.
     """
     submission = get_object_or_404(Submission, id=sub_id)
 
-    context = {
-        "sub": submission,
-    }
+    context = {"sub": submission}
 
     if request.method == "POST":
         password = request.POST.get("password")
+        reason = request.POST.get("reason", "").strip()
 
-        # 🔐 Re-authenticate admin
         admin_user = authenticate(
             username=request.user.username,
             password=password,
@@ -264,8 +255,6 @@ def admin_decrypt_view(
                 context,
             )
 
-        # ✅ Require reason before decryption
-        reason = request.POST.get("reason", "").strip()
         if not reason:
             context["error"] = "Decryption reason is required."
             return render(
@@ -274,7 +263,6 @@ def admin_decrypt_view(
                 context,
             )
 
-        # 🔓 Perform decryption
         server_key = load_or_create_server_private_key()
 
         plaintext = decrypt_message(
@@ -285,11 +273,10 @@ def admin_decrypt_view(
             server_key,
         )
 
-        # 🧾 Audit log with reason + safe IP
         DecryptionAuditLog.objects.create(
             admin=request.user,
             submission=submission,
-            ip_address=get_client_ip(request),  # ✅ safe IP
+            ip_address=get_client_ip(request),
             reason=reason,
         )
 
