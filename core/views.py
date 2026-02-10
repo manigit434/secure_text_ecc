@@ -16,6 +16,8 @@ from core.crypto.crypto import (
     encrypt_message,
     decrypt_message,
 )
+from core.utils import get_client_ip   # ✅ NEW import
+
 
 # ======================================================
 # ROOT HOME VIEW
@@ -63,6 +65,10 @@ def login_view(request: HttpRequest) -> HttpResponse:
         })
 
     if request.method == "POST":
+        # ✅ Capture real client IP
+        ip_address = get_client_ip(request)
+        print("User login attempt from IP:", ip_address)
+
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
 
@@ -72,6 +78,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
             login(request, user)
             request.session["login_failures"] = 0
             request.session["cooldown_until"] = 0
+            print("User logged in successfully from IP:", ip_address)
             return redirect("core:success")
 
         # ❌ FAILED LOGIN
@@ -210,6 +217,8 @@ def submit_view(request: HttpRequest) -> HttpResponse:
             nonce=nonce,
             salt=salt,
             client_pubkey_pem=client_pub,
+            # ✅ Optionally log IP here too
+            # ip_address=get_client_ip(request),
         )
 
         return redirect("core:mine")
@@ -276,11 +285,11 @@ def admin_decrypt_view(
             server_key,
         )
 
-        # 🧾 Audit log with reason
+        # 🧾 Audit log with reason + safe IP
         DecryptionAuditLog.objects.create(
             admin=request.user,
             submission=submission,
-            ip_address=request.META.get("REMOTE_ADDR", ""),
+            ip_address=get_client_ip(request),  # ✅ safe IP
             reason=reason,
         )
 

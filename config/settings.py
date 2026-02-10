@@ -7,6 +7,7 @@ for cryptography & zero-trust applications.
 
 from pathlib import Path
 import os
+import dj_database_url
 
 # ======================================================
 # Base Directory
@@ -31,6 +32,12 @@ ALLOWED_HOSTS = os.environ.get(
     "ALLOWED_HOSTS",
     "127.0.0.1,localhost,.onrender.com"
 ).split(",")
+
+# ✅ Trust Render proxy headers
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# ⚠️ Do NOT use "*" in production
 
 
 # ======================================================
@@ -100,10 +107,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # ======================================================
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 

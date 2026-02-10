@@ -17,6 +17,9 @@ class Submission(models.Model):
     salt = models.BinaryField()
     client_pubkey_pem = models.BinaryField()
 
+    # ✅ Store client IP (supports IPv4 + IPv6)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
     class Meta:
         ordering = ("-created_at",)
         verbose_name = "Encrypted Submission"
@@ -37,7 +40,8 @@ class DecryptionAuditLog(models.Model):
         on_delete=models.PROTECT,
     )
 
-    ip_address = models.CharField(max_length=64)
+    # ✅ Updated to GenericIPAddressField
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
     reason = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
