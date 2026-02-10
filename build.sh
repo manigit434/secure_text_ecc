@@ -4,8 +4,9 @@ set -o errexit
 echo "Installing dependencies..."
 pip install -r requirements.txt
 
-echo "Running database migrations..."
-python manage.py migrate --noinput
+echo "Running migrations..."
+python manage.py migrate --noinput || python manage.py migrate --run-syncdb --noinput
+
 
 echo "Creating superuser if not exists..."
 python manage.py shell << EOF
@@ -23,8 +24,6 @@ if username and password:
         print("Superuser created")
     else:
         print("Superuser already exists")
-else:
-    print("Superuser env vars not set")
 EOF
 
 echo "Collecting static files..."
