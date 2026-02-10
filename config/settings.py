@@ -104,13 +104,18 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 # ======================================================
-# Database
+# Database (FORCE PostgreSQL)
 # ======================================================
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise Exception("DATABASE_URL is not set. PostgreSQL is required.")
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get("DATABASE_URL"),
+    "default": dj_database_url.config(
+        default=DATABASE_URL,
         conn_max_age=600,
-        ssl_require=True
+        ssl_require=True,
     )
 }
 
