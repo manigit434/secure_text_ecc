@@ -227,7 +227,7 @@ def submit_view(request: HttpRequest) -> HttpResponse:
             # ip_address=get_client_ip(request),
         )
 
-       return redirect("core:mine")
+        return redirect("core:mine")  # ✅ correctly indented
 
     return render(request, "submit.html")
 
