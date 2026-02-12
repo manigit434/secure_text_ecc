@@ -102,6 +102,14 @@ def _derive_aes_key(shared_secret: bytes, salt: bytes) -> bytes:
     """
     Derive a 256-bit AES key from ECDH shared secret using HKDF.
     """
+
+    # 🔥 FIX: Convert PostgreSQL memoryview → bytes
+    if isinstance(salt, memoryview):
+        salt = bytes(salt)
+
+    if isinstance(shared_secret, memoryview):
+        shared_secret = bytes(shared_secret)
+
     return HKDF(
         algorithm=hashes.SHA256(),
         length=32,  # 256-bit AES key
