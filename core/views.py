@@ -217,14 +217,14 @@ def submit_view(request: HttpRequest) -> HttpResponse:
             server_key,
         )
 
+        # ✅ Updated: capture client IP safely
         Submission.objects.create(
             user=request.user,
+            submission_ip=get_client_ip(request),  # ✅ Added safely
             encrypted_text=ciphertext,
             nonce=nonce,
             salt=salt,
             client_pubkey_pem=client_pub,
-            # ✅ Optionally log IP here too
-            # ip_address=get_client_ip(request),
         )
 
         return redirect("core:mine")  # ✅ correctly indented
