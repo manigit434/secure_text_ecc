@@ -27,12 +27,12 @@ class SubmissionAdmin(admin.ModelAdmin):
         "client_pubkey_pem",
         "created_at",
         "user",
-        "ip_address",
+        "submission_ip",   # ✅ Correct field name
     )
 
     fieldsets = (
         ("Metadata", {
-            "fields": ("user", "created_at", "ip_address")
+            "fields": ("user", "created_at", "submission_ip")  # ✅ Correct field name
         }),
         ("Encrypted Payload (DO NOT EDIT)", {
             "fields": (
