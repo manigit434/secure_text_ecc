@@ -190,7 +190,7 @@ def my_submissions(request: HttpRequest) -> HttpResponse:
 
     return render(
         request,
-        "mysubmissions.html",
+        "my_submissions.html",
         {"subs": subs},  # ✅ matches template
     )
 
